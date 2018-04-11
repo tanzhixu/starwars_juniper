@@ -1,0 +1,104 @@
+---
+routing_options:
+    - route: 10.1.60.0/24
+      next: 10.1.60.1
+    - route: 10.1.80.0/24
+      next: 10.1.80.1
+
+protocols:
+    - stp
+
+security_nat_destination:
+    - pool_name: dnat-pool-fuwu1
+      pool_address: 10.10.13.18/32
+      pool_port: 80
+    - pool_name: dnat-pool-fuwu2
+      pool_address: 10.10.13.19/32
+      pool_port: 80
+
+security_nat_destination_rule:
+    - rule_name: fuwu1
+      rule_source_address: 0.0.0.0/0
+      rule_destination_address: 103.26.1.69/32
+      rule_destination_port: 80
+      rule_pool_name: dnat-pool-fuwu1
+    - rule_name: fuwu2
+      rule_source_address: 0.0.0.0/0
+      rule_destination_address: 103.26.1.70/32
+      rule_destination_port: 80
+      rule_pool_name: dnat-pool-fuwu2
+
+security_nat_proxy_arp:
+    - proxy_arp_name: ge-0/0/0.0
+      proxy_arp_address:
+        - 103.26.1.69/32
+        - 103.26.1.70/32
+    - proxy_arp_name: ge-0/0/1.0
+      proxy_arp_address:
+        - 103.26.1.71/32
+        - 103.26.1.72/32
+
+security_policies_trust_to_untrust:
+    - policy_name: VPN-IDC
+      source_address:
+        - vpn_IDC_10.10.11.0/24
+      destination_address:
+        - vpn_Office_10.1.10.0/24
+      application:
+        - 3389
+        - 443
+      policy: permit
+    - policy_name: trust-to-untrust
+      source_address:
+        - any
+      destination_address:
+        - any
+      application:
+        - any
+      policy: permit
+
+security_policies_untrust_to_trust:
+    - policy_name: VPN-IDC
+      source_address:
+        - vpn_Office_10.1.20.0/24
+      destination_address:
+        - vpn_IDC_10.10.20.0/24
+      application:
+        - 3389
+        - 443
+      policy: permit
+    - policy_name: untrust-to-trust
+      source_address:
+        - any
+      destination_address:
+        - any
+      application:
+        - any
+      policy: permit
+
+security_zones_trust_address_book_use_ip:
+    - address_name: vpn_IDC_10.10.11.0/24
+      address_ip: 10.10.11.0/24
+    - address_name: vpn_IDC_10.10.20.0/24
+      address_ip: 10.10.20.0/24
+security_zones_trust_address_book_use_dns:
+    - address_dns_name: huitongtianxia-domian1
+      address_dns_ip: lab.chinapnr.com
+security_zones_untrust_address_book_use_ip:
+    - address_name: vpn_Office_10.1.10.0/24
+      address_ip: 10.1.10.0/24
+    - address_name: vpn_Office_10.1.20.0/24
+      address_ip: 10.1.20.0/24
+security_zones_untrust_address_book_use_dns:
+    - address_dns_name: huitongtianxia-domian2
+      address_dns_ip: mertest.chinapnr.com
+
+applications:
+    - name: 3389
+      protocol: tcp
+      sourceport: 0-65535
+      destport: 3389
+    - name: 443
+      protocol: tcp
+      sourceport: 1-65535
+      destport: 443

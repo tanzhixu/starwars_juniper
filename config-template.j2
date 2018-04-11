@@ -1,0 +1,129 @@
+routing-options {
+    replace:
+    static {
+    {% for routing in routing_options %}
+        route {{ routing.route }} next-hop {{ routing.next }};
+    {% endfor %}
+    }
+}
+
+protocols {
+    {% for protocol in protocols %}
+        {{ protocol }};
+    {% endfor %}
+}
+
+security {
+    nat {
+        replace:
+        destination {
+            {% for nat in security_nat_destination %}
+                pool {{ nat.pool_name }} {
+                    address {{ nat.pool_address }} port {{ nat.pool_port }};
+                }
+            {% endfor %}
+            rule-set dst-nat {
+                from zone untrust;
+                {% for rule in security_nat_destination_rule %}
+                    rule {{ rule.rule_name }} {
+                        match {
+                            source-address {{ rule.rule_source_address }};
+                            destination-address {{ rule.rule_destination_address }};
+                            destination-port {{ rule.rule_destination_port }};
+                        }
+                        then {
+                            destination-nat {
+                                pool {
+                                    {{ rule.rule_pool_name }};
+                                }
+                            }
+                        }
+                    }
+                {% endfor %}
+            }
+        }
+        replace:
+        proxy-arp {
+            {% for proxy in security_nat_proxy_arp %}
+                interface {{ proxy.proxy_arp_name }} {
+                    {% for address in proxy.proxy_arp_address %}
+                        address {
+                        {{ address }};
+                        }
+                    {% endfor %}
+                }
+            {% endfor %}
+        }
+    }
+    policies {
+        replace:
+        from-zone trust to-zone untrust {
+            {% for spolicy in security_policies_trust_to_untrust %}
+                policy {{ spolicy.policy_name }} {
+                    match {
+                        source-address [ {{ spolicy.source_address|join(' ') }} ];
+                        destination-address [ {{ spolicy.destination_address|join(' ') }} ];
+                        application [ {{ spolicy.application|join(' ') }} ];
+                    }
+                    then {
+                    {{ spolicy.policy }};
+                    }
+                }
+            {% endfor %}
+        }
+        replace:
+        from-zone untrust to-zone trust {
+            {% for spolicy in security_policies_untrust_to_trust %}
+                policy {{ spolicy.policy_name }} {
+                    match {
+                        source-address [ {{ spolicy.source_address|join(' ') }} ];
+                        destination-address [ {{ spolicy.destination_address|join(' ') }} ];
+                        application [ {{ spolicy.application|join(' ') }} ];
+                    }
+                    then {
+                    {{ spolicy.policy }};
+                    }
+                }
+            {% endfor %}
+        }
+    }
+    zones {
+        security-zone trust {
+            replace:
+            address-book {
+                {% for address in security_zones_trust_address_book_use_ip %}
+                    address {{ address.address_name }} {{ address.address_ip }};
+                {% endfor %}
+                {% for address in security_zones_trust_address_book_use_dns %}
+                    address {{ address.address_dns_name }} {
+                        dns-name {{ address.address_dns_ip }};
+                     }
+                {% endfor %}
+            }
+        }
+        security-zone untrust {
+            replace:
+            address-book {
+                {% for address in security_zones_untrust_address_book_use_ip %}
+                    address {{ address.address_name }} {{ address.address_ip }};
+                {% endfor %}
+                {% for address in security_zones_untrust_address_book_use_dns %}
+                    address {{ address.address_dns_name }} {
+                        dns-name {{ address.address_dns_ip }};
+                     }
+                {% endfor %}
+            }
+        }
+    }
+}
+
+applications {
+    {% for app in applications %}
+    application {{ app.name }} {
+        protocol {{ app.protocol }};
+        source-port {{ app.sourceport }};
+        destination-port {{ app.destport }};
+    }
+    {% endfor %}
+}
+
